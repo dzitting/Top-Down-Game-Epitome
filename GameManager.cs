@@ -27,6 +27,7 @@ public class GameManager : MonoBehaviour
 
     //References
     public Player player;
+    public Weapon weapon;
     public FloatingTextManager floatingTextManager;
 
     //Logic
@@ -39,6 +40,75 @@ public class GameManager : MonoBehaviour
         floatingTextManager.Show(msg, fontSize, color, position, motion, duration);
     }
 
+    //Upgrade Weapon
+    public bool TryUpgradeWeapon()
+
+    {
+        //Is weapon max level?
+        if (weaponPrices.Count <= weapon.weaponLvl)
+        {
+            return false;
+        }
+
+        if (coins >= weaponPrices[weapon.weaponLvl])
+        {
+            coins -= weaponPrices[weapon.weaponLvl];
+            weapon.UpgradeWeapon();
+            return true;
+        }
+
+        return false;
+    }
+
+    //Experience system
+    public int GetCurrentLvl()
+    {
+        int r = 0;
+        int add = 0;
+
+        while(experience >= add)
+        {
+            add += xpTable[r];
+            r++;
+
+            if(r == xpTable.Count) // If maxed level
+            {
+                return r;
+            }
+        }
+
+        return r;
+    }
+    
+    public int GetXpToLvl(int lvl)
+    {
+        int r = 0;
+        int xp = 0;
+
+        while (r < lvl)
+        {
+            xp += xpTable[r];
+            r++;
+        }
+
+        return xp;
+    }
+
+    public void GrantXP(int xp)
+    {
+        int currLvl = GetCurrentLvl();
+        experience += xp;
+        if(currLvl < GetCurrentLvl())
+        {
+            OnLevelUp();
+        }
+    }
+
+    public void OnLevelUp()
+    {
+        Debug.Log("levelUp");
+        player.OnLevelUp();
+    }
     //Save state
     /*
      * INT perferredSkin
@@ -50,10 +120,10 @@ public class GameManager : MonoBehaviour
     {
         string s = "";
 
-        s += "0" + "|";
-        s += coins.ToString() + "|";
-        s += experience.ToString() + "|";
-        s += "0";
+        s += "0" + " | ";
+        s += coins.ToString() + " | ";
+        s += experience.ToString() + " | ";
+        s += weapon.weaponLvl.ToString();
 
         PlayerPrefs.SetString("SaveState", s);
     }
@@ -68,8 +138,12 @@ public class GameManager : MonoBehaviour
         //Change player skin
         coins = int.Parse(data[1]);
         experience = int.Parse(data[2]);
-        //Change weapon
+        player.SetLevel(GetCurrentLvl());
+        //Change weapon lvl and sprite
+        weapon.SetWeaponLvl(int.Parse(data[3]));
 
         Debug.Log("LoadState");
+
+        player.transform.position = GameObject.Find("SpawnPoint").transform.position;
     }
 }
